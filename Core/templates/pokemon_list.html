@@ -1,0 +1,24 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Lista de pokemons
+{% endblock %}
+
+{% block content %}
+    <main>
+        <div>
+            {% for pokemon in pokemons %}
+                <div>
+                    <h3>{{ pokemon }}</h3>
+                    {% if pokemon.ataques.all %}
+                    {% for ataque in pokemon.ataques.all %}
+                    <p> ataque: {{ ataque }} {{ ataque.coste }}</p>
+                    {% endfor %}
+                    {% else %}
+                    <p> No se han encontrado</p>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </main>
+{% endblock %}
