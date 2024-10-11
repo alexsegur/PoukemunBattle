@@ -2,7 +2,7 @@ from django import forms
 from django.contrib import admin
 from django.core.exceptions import ValidationError
 
-from .models import CartaPokemon, Ataque, CartaPokemonAtaque, JugadorEntrenador, Coleccion, Mazo
+from .models import CartaPokemon, Ataque, CartaPokemonAtaque, JugadorEntrenador, Coleccion, Mazo, CartaMazo
 
 
 class PokemonAtaqueInline(admin.TabularInline):
@@ -48,21 +48,35 @@ class ColeccionInlineForm(forms.ModelForm):
 class ColeccionInline(admin.TabularInline):
     model = Coleccion
     form = ColeccionInlineForm
+    extra = 0
+
+class CartaMazoInline(admin.TabularInline):
+    model = CartaMazo
     extra = 1
-    max_num = 20 #Un entrenador solo puede llegar a tener en su colección (max_num) pokemons
-    fields = ('pokemon','ataque1','ataque2')
+    max_num = 10
+
+class MazoInline(admin.TabularInline):
+    model = Mazo
+    extra = 0
+
+@admin.register(Mazo)
+class MazoAdmin(admin.ModelAdmin):
+    model = Mazo
+    extra = 1
+    max_num = 4
+    inlines = [CartaMazoInline]
 
 
 class PokemonAdmin(admin.ModelAdmin):
     list_display = ('nombre_pokemon','id',)
     inlines = [PokemonAtaqueInline]
 
-
-class ColeccionAdmin(admin.ModelAdmin):
+@admin.register(JugadorEntrenador)
+class JugadorEntrenadorAdmin(admin.ModelAdmin):
     list_display = ('nombre',)
-    inlines = [ColeccionInline]
+    inlines = [ColeccionInline, MazoInline]
 
 admin.site.register(Ataque)
 admin.site.register(CartaPokemon, PokemonAdmin)
-admin.site.register(JugadorEntrenador, ColeccionAdmin) #Añadir en ColeccionAdmin el inline de Mazos
-admin.site.register(Mazo) #Añadir relacion MazoEntrenador
+
+
