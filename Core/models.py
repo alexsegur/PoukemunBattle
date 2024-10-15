@@ -15,7 +15,6 @@ class CartaPokemon(models.Model):  # Intermedia lvl1
     salud_max = models.IntegerField(default=0)
     energia = models.IntegerField(default=0)
 
-    # def clean(self):
 
     def __str__(self):
         return '{nombre_pokemon}, {salud_max}'.format(nombre_pokemon=self.nombre_pokemon, salud_max=self.salud_max)
