@@ -59,6 +59,7 @@ class MazoInline(admin.TabularInline):
     model = Mazo
     extra = 0
 
+
 @admin.register(Mazo)
 class MazoAdmin(admin.ModelAdmin):
     model = Mazo

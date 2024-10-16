@@ -7,7 +7,7 @@ class Ataque(models.Model):
     coste = models.PositiveIntegerField(default=0)
 
     def __str__(self):
-        return '{nombre}, {damage}, {coste}'.format(nombre=self.nombre, damage=self.damage, coste=self.coste)
+        return self.nombre
 
 
 class CartaPokemon(models.Model):  # Intermedia lvl1
@@ -17,7 +17,7 @@ class CartaPokemon(models.Model):  # Intermedia lvl1
 
 
     def __str__(self):
-        return '{nombre_pokemon}, {salud_max}'.format(nombre_pokemon=self.nombre_pokemon, salud_max=self.salud_max)
+        return self.nombre_pokemon
 
 
 class CartaPokemonAtaque(models.Model):  # Intermedia lvl1
