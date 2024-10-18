@@ -1,24 +1,34 @@
 {% extends "layout.html" %}
 
 {% block title %}
-    Lista de pokemons
+Lista de pokemons
 {% endblock %}
 
 {% block content %}
-    <main>
-        <div>
-            {% for pokemon in pokemons %}
-                <div>
-                    <h3>{{ pokemon }}</h3>
-                    {% if pokemon.ataques.all %}
-                    {% for ataque in pokemon.ataques.all %}
-                    <p> ataque: {{ ataque }} {{ ataque.coste }}</p>
-                    {% endfor %}
-                    {% else %}
-                    <p> No se han encontrado</p>
-                    {% endif %}
-                </div>
+<main>
+    <div>
+        <!-- Si no se ha abierto un sobre, muestra esto -->
+        <h1><b>Abre tu sobre</b></h1>
+        <form method="post">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Abrir Sobre</button>
+        </form>
+        {% if cartas_obtenidas %}
+        <h2>Últimas 5 cartas obtenidas por {{ entrenador.nombre }}</h2>
+        <ul>
+            {% for coleccion in cartas_obtenidas %}
+            <li>
+                {{ coleccion.pokemon.nombre_pokemon }} - {{ coleccion.pokemon.set.name }}
+                {% if coleccion.pokemon.rare %}(Rara){% endif %}
+                <br>
+                Ataque 1: {{ coleccion.ataque1.ataque.nombre }}
+                <br>
+                Ataque 2: {{ coleccion.ataque2.ataque.nombre }}
+            </li>
             {% endfor %}
-        </div>
-    </main>
+        </ul>
+        {% endif %}
+    </div>
+</main>
 {% endblock %}

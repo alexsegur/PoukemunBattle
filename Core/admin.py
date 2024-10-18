@@ -2,18 +2,18 @@ from django import forms
 from django.contrib import admin
 from django.core.exceptions import ValidationError
 
-from .models import CartaPokemon, Ataque, CartaPokemonAtaque, JugadorEntrenador, Coleccion, Mazo, CartaMazo
+from .models import (CartaPokemon, Ataque, CartaPokemonAtaque, JugadorEntrenador, Coleccion,
+                     Mazo, CartaMazo, BoosterPack, Set)
 
 
 class PokemonAtaqueInline(admin.TabularInline):
     model = CartaPokemonAtaque
     extra = 1
-    max_num = 20 #Un pokemon solo puede llegar a aprender hasta (max_num) ataques
+    max_num = 20  # Un pokemon solo puede llegar a aprender hasta (max_num) ataques
     fields = ('ataque',)
 
 
 class ColeccionInlineForm(forms.ModelForm):
-
     class Meta:
         model = Coleccion
         fields = ['pokemon', 'ataque1', 'ataque2']
@@ -45,15 +45,18 @@ class ColeccionInlineForm(forms.ModelForm):
 
         return cleaned_data
 
+
 class ColeccionInline(admin.TabularInline):
     model = Coleccion
     form = ColeccionInlineForm
     extra = 0
 
+
 class CartaMazoInline(admin.TabularInline):
     model = CartaMazo
     extra = 1
     max_num = 10
+
 
 class MazoInline(admin.TabularInline):
     model = Mazo
@@ -69,15 +72,17 @@ class MazoAdmin(admin.ModelAdmin):
 
 
 class PokemonAdmin(admin.ModelAdmin):
-    list_display = ('nombre_pokemon','id',)
+    list_display = ('nombre_pokemon', 'id',)
     inlines = [PokemonAtaqueInline]
+
 
 @admin.register(JugadorEntrenador)
 class JugadorEntrenadorAdmin(admin.ModelAdmin):
     list_display = ('nombre',)
     inlines = [ColeccionInline, MazoInline]
 
+
 admin.site.register(Ataque)
+admin.site.register(BoosterPack)
+admin.site.register(Set)
 admin.site.register(CartaPokemon, PokemonAdmin)
-
-

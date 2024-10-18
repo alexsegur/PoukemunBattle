@@ -1,6 +1,7 @@
 from django.urls import path
-from . import views
+from Core.views import IndexView
 
 urlpatterns = [
-    path('', views.IndexView.as_view(), name='index')
+    path('', IndexView.as_view(), name='index'),
+    path('open-booster/', IndexView.as_view(), name='open_booster')
 ]
