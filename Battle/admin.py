@@ -17,7 +17,8 @@ class BatallaJugadorAdmin(admin.ModelAdmin):
 
 class ManoJugadorTurnoInline(admin.TabularInline):
     model = CartaManoJugador
-
+    readonly_fields = ('mano','carta')
+    can_delete = False
 @admin.register(ManoJugador)
 class ManoJugadorAdmin(admin.ModelAdmin):
     readonly_fields = ('batalla','turno','jugador')
@@ -26,6 +27,8 @@ class ManoJugadorAdmin(admin.ModelAdmin):
 
 class DescartesJugadorTurnoInline(admin.TabularInline):
     model = CartaDescartesJugador
+    readonly_fields = ('carta', 'descarte')
+    can_delete = False
 
 @admin.register(DescartesJugador)
 class DescartesJugadorAdmin(admin.ModelAdmin):
@@ -34,6 +37,8 @@ class DescartesJugadorAdmin(admin.ModelAdmin):
 
 class ReservaJugadorTurnoInline(admin.TabularInline):
     model = CartaReservaJugador
+    readonly_fields = ('carta', 'reserva')
+    can_delete = False
 
 @admin.register(ReservaJugador)
 class ReservaJugadorAdmin(admin.ModelAdmin):
@@ -42,6 +47,8 @@ class ReservaJugadorAdmin(admin.ModelAdmin):
 
 class CartaActivaJugadorTurnoInline(admin.TabularInline):
     model = CartaActivaJugador
+    readonly_fields = ('batalla', 'turno','jugador','carta')
+    can_delete = False
 
 @admin.register(TurnoJugador)
 class CartaActivaJugadorAdmin(admin.ModelAdmin):
