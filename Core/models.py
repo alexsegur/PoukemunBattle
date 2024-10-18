@@ -61,8 +61,13 @@ class Coleccion(models.Model):  # Tabla intermedia lvl2 Entrenador - CartaPokemo
         ataques_posibles = CartaPokemonAtaque.objects.filter(pokemon=carta)
 
         if ataques_posibles.exists():
-            ataque1 = random.choice(ataques_posibles)
-            ataque2 = random.choice(ataques_posibles)
+            if ataques_posibles.count() == 1:
+                ataque1 = random.choice(ataques_posibles)
+                ataque2 = None
+            else:
+                ataque1 = random.choice(ataques_posibles)
+                ataques_posibles=-ataque1
+                ataque2 = random.choice(ataques_posibles)
         else:
             ataque1, ataque2 = None, None
 
