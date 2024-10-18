@@ -1,5 +1,4 @@
 import random
-
 from Core.models import JugadorEntrenador, CartaMazo, Mazo
 from django.db.models import Q
 
@@ -10,8 +9,10 @@ class Batalla(models.Model):
     nombre = models.CharField(default='', max_length=50, blank=True, null=True)
     fecha = models.DateTimeField(auto_now_add=True, null= False)
 
+    def definirnombre(self):
+        nombre = '{}_{}'.format(self.id,self.fecha)
     def __str__(self):
-        return '{}_{}'.format(self.id,self.fecha)
+        return self.nombre
 
 
 class Turno(models.Model):
@@ -29,9 +30,9 @@ class JugadorBatalla(models.Model):
     class Meta:
         unique_together = (('batalla', 'jugador','mazo'),)
 
-    def iniciar_batalla(self, jugador_1, jugador_2, mazo_1, mazo_2):
-        jugador_batalla_1 = JugadorBatalla.objects.create(batalla=self, jugador=jugador_1, mazo=mazo_1)
-        jugador_batalla_2 = JugadorBatalla.objects.create(batalla=self, jugador=jugador_2, mazo=mazo_2)
+    def iniciar_batalla(batalla, jugador_1, jugador_2, mazo_1, mazo_2):
+        jugador_batalla_1 = JugadorBatalla.objects.create(batalla=batalla, jugador=jugador_1, mazo=mazo_1)
+        jugador_batalla_2 = JugadorBatalla.objects.create(batalla=batalla, jugador=jugador_2, mazo=mazo_2)
 
         # Arreglar esto
         jugador_batalla_1.robar_cartas(3)
@@ -120,4 +121,5 @@ class CartaActivaJugador(models.Model):
     carta = models.ForeignKey(CartaMazo,on_delete=models.CASCADE)
 
     def atacar(self,objetivo,ataque):
+
 
