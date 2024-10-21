@@ -33,44 +33,66 @@ class JugadorBatalla(models.Model):
     class Meta:
         unique_together = (('batalla', 'jugador','mazo'),)
 
-    def iniciar_batalla(self, batalla, jugador_1, jugador_2, mazo_1, mazo_2):
-        jugador_batalla_1 = JugadorBatalla.objects.create(batalla=batalla, jugador=jugador_1, mazo=mazo_1)
-        jugador_batalla_2 = JugadorBatalla.objects.create(batalla=batalla, jugador=jugador_2, mazo=mazo_2)
+    def iniciar_batalla(self, jugador_1, jugador_2, mazo_1, mazo_2):
+        batalla1 = Batalla.create()
+        batalla1.save()
+
+        jugador_batalla_1 = JugadorBatalla.objects.create(batalla=batalla1, jugador=jugador_1, mazo=mazo_1)
+        jugador_batalla_2 = JugadorBatalla.objects.create(batalla=batalla1, jugador=jugador_2, mazo=mazo_2)
+        jugador_batalla_1.save()
+        jugador_batalla_2.save()
+
+        turno = Turno.create(batalla=batalla, turno=1)
+        turno.save()
+
+        turnojugador1 = TurnoJugador.create(turno=turno,jugadorbatalla=jugador_batalla_1)
+        turnojugador2 = TurnoJugador.create(turno=turno, jugadorbatalla=jugador_batalla_2)
+
+
+
 
         llenar_mazo(jugador_batalla_1)
         llenar_mazo(jugador_batalla_2)
 
-        jugador_batalla_1.robar_cartas(3,jugador_batalla_1,)
-        jugador_batalla_2.robar_cartas(3)
+        robar_cartas(3,jugador_batalla_1,)
+        robar_cartas(3)
 
 
 class TurnoJugador(models.Model):
     turno = models.ForeignKey(Turno, on_delete=models.CASCADE)
     jugadorbatalla = models.ForeignKey(JugadorBatalla, on_delete=models.CASCADE)
-    energia = models.PositiveIntegerField(default=0)
+    energia = models.PositiveIntegerField(default=0) #pasar a batalla
 
     class Meta:
         unique_together = ('turno', 'jugadorbatalla')
 
+    def robar_carta(self):
+        pass
 
-
+class MazoJugador(models.Model):
+    batalla = models.ForeignKey(Batalla, on_delete=models.CASCADE)
+    turno = models.ForeignKey(Turno, on_delete=models.CASCADE)
+    jugador = models.ForeignKey(JugadorBatalla, on_delete=models.CASCADE)
 
 class CartaMazoJugador(models.Model):
-    mazojugador = models.ForeignKey(JugadorBatalla, on_delete=models.CASCADE)
+    mazojugador = models.ForeignKey(MazoJugador, on_delete=models.CASCADE)
     carta = models.ForeignKey(CartaMazo, on_delete=models.CASCADE)
 
 
     def llenar_mazo(self, jugadorbatalla):
-
-        cartas_en_mazo = CartaMazo.objects.filter(mazo=jugadorbatalla.mazo)
+        mazojugador = MazoJugador.objects.filter(jugador=jugadorbatalla)
+        cartas_en_mazo = CartaMazo.objects.filter(mazo=mazojugador.jugador.mazo)
         for carta in cartas_en_mazo:
-            CartaMazoJugador.objects.create(mazojugador=jugadorbatalla, carta=carta)
+            CartaMazoJugador.objects.create(mazojugador=mazojugador, carta=carta)
 
 
 class ManoJugador(models.Model):
     batalla = models.ForeignKey(Batalla, on_delete=models.CASCADE)
     turno = models.ForeignKey(Turno, on_delete=models.CASCADE)
     jugador = models.ForeignKey(JugadorBatalla, on_delete=models.CASCADE)
+
+    def definir_mazo(self):
+
 
 
 class CartaManoJugador(models.Model):
@@ -85,14 +107,18 @@ class CartaManoJugador(models.Model):
 
         for carta in cartas_a_robar:
             CartaManoJugador.objects.create(mano=mano, carta=carta)
-            CartaMazoJugador.objects.filter(mazojugador=jugadorbatalla).filter(carta=carta).first().delete()
+            CartaMazoJugador.objects.filter(mazojugador=jugadorbatalla, carta=carta).first().delete()
 
 
     def jugar_carta(self,carta):
-        carta_activa = CartaActivaJugador.objects.all()
+        manojugador = CartaManoJugador.objects.filter(carta=carta).first()
+        carta_activa = CartaActivaJugador.objects.filter(batalla=manojugador.mano.batalla,turno=manojugador.mano.turno,jugador=manojugador.mano.jugador).first()
+        reservajugador = ReservaJugador.objects.filter(batalla=manojugador.mano.batalla,turno=manojugador.mano.turno,jugador=manojugador.mano.jugador).first()
         if carta_activa:
-
-        CartaActivaJugador.objects.create(batalla= , turno= , jugador= ,carta=carta)
+            CartaReservaJugador.objects.create(carta=carta_activa, reserva=reservajugador)
+            CartaActivaJugador.filter(batalla=manojugador.batalla,jugador=manojugador.jugador,turno=manojugador.turno).update(carta=carta)
+        else:
+            CartaActivaJugador.create(batalla=manojugador.batalla,turno=manojugador.turno,jugador=manojugador.jugador,carta=carta)
         CartaManoJugador.objects.filter(carta=carta).first().delete()
 
 
@@ -100,9 +126,18 @@ class CartaActivaJugador(models.Model):
     batalla = models.ForeignKey(Batalla, on_delete=models.CASCADE)
     turno = models.ForeignKey(TurnoJugador, on_delete=models.CASCADE)
     jugador = models.ForeignKey(JugadorBatalla, on_delete=models.CASCADE)
-    carta = models.ForeignKey(CartaMazo,on_delete=models.CASCADE)
+    carta = models.ForeignKey(CartaMazo,on_delete=models.CASCADE, blank=True, null=True)
+
+    def definir_carta_activa(self,carta):
+        self.carta = carta
+        self.save()
+
 
     def atacar(self,objetivo,ataque):
+        objetivo.salud =- ataque.poder
+        if objetivo.salud <= 0:
+            objetivo.salud = 0
+            carta_debilitada(objetivo)
         pass
 
 
@@ -119,7 +154,7 @@ class CartaDescartesJugador(models.Model):
 
     def carta_debilitada(self, carta, descarte):
         CartaDescartesJugador.objects.create(descarte=descarte,carta=carta)
-        CartaActivaJugador.objets.filter(jugador=descarte.jugador).delete()
+        CartaActivaJugador.objets.filter(jugador=descarte.jugador).update(carta=None)
 
 
 class ReservaJugador(models.Model):
@@ -149,14 +184,7 @@ class AccionTurnoJugador(models.Model):
     accion = models.CharField(max_length=50, choices=ACCION, null=True, blank=True)
 
     def realizar_accion(self, accion, objetivo=None):
-        if accion == '1':
-            self.atacar(objetivo)
-        elif accion == '2':
-            self.pasar_turno()
-        elif accion == '3':
-            self.recargar_energia()
-        elif accion == '4':
-            self.jugar_carta()
+        self.accion = accion
 
 
 
