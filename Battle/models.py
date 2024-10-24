@@ -1,4 +1,6 @@
 import random
+from pickle import FALSE
+
 from Core.models import JugadorEntrenador, CartaMazo, Mazo
 
 from django.db import models
@@ -36,13 +38,13 @@ class Batalla(models.Model):
             TurnoJugador.registrar_turnojugador(id_turno,jugadorbatalla)
             CartaMazoJugador.llenar_mazo(jugadorbatalla, jugadorbatalla.mazo)
 
-        while victoria == TRUE:
-
+        victoria = False
+        while not victoria:
             Turno.empezar_turno(id_turno)
 
             Turno.actualizar_turno(jugadorbatalla_1.batalla)
 
-        victoria()
+            victoria = check_victoria()
         #CartaMazoJugador.robar_cartas(self,jugadorbatalla_1,mano,3)
         #CartaMazoJugador.robar_cartas(self,jugadorbatalla_2,mano,3)
         #Se debería crear función para hacer seguimiento del turno y no meter el turno en cada función.
@@ -112,7 +114,7 @@ class TurnoJugador(models.Model):
         ReservaJugador.registrar_reservajugador(turnojugador)
 
     def empezar_turnojugador(self,jugadorbatalla):
-        dar_energia(1)
+        self.dar_energia(1)
         mazojugador = MazoJugador.objects.filter(jugador=jugadorbatalla).first()
         CartaMazoJugador.robar_cartas(mazojugador,1)
 
@@ -161,7 +163,7 @@ class ManoJugador(models.Model):
         self.save()
 
     def actualizar_manojugador(self,turnojugador):
-        manojugador_anterior = self.objects.filter(jugador=turnojugador.jugadorbatalla).first()
+        manojugador_anterior = self.objects.filter(jugador=turnojugador.jugadorbatalla).first().update(turno=turnojugador)
         manojugador_anterior.turno = turnojugador
         self.save()
 
