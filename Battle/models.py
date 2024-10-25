@@ -1,8 +1,5 @@
 import random
-from pickle import FALSE
-
-from Core.models import JugadorEntrenador, CartaMazo, Mazo
-
+from Core.models import JugadorEntrenador, CartaMazo, Mazo, CartaPokemon,CartaPokemonAtaque
 from django.db import models
 
 
@@ -16,10 +13,10 @@ class Batalla(models.Model):
             self.nombre = '{}_{}'.format(self.id, self.fecha)
             super(Batalla, self).save(*args, **kwargs)
 
-    def registrar_batalla(self):
-        self.objects.create()
-        self.save()
-        return self
+    @staticmethod
+    def registrar_batalla():
+        batalla = Batalla.objects.create()
+        return batalla
 
     def __str__(self):
         return self.nombre
@@ -35,59 +32,72 @@ class Batalla(models.Model):
         id_turno = Turno.registrar_turno(jugadorbatalla_1.batalla)
         jugadoresbatalla = [jugadorbatalla_1,jugadorbatalla_2]
         for jugadorbatalla in jugadoresbatalla:
-            TurnoJugador.registrar_turnojugador(id_turno,jugadorbatalla)
+            turnojugador = TurnoJugador.registrar_turnojugador(id_turno,jugadorbatalla)
+            TurnoJugador.registrar_todo_por_turnojugador()
             CartaMazoJugador.llenar_mazo(jugadorbatalla, jugadorbatalla.mazo)
+            mazojugador = MazoJugador.objects.filter(jugador=jugadorbatalla).first()
+            CartaMazoJugador.robar_cartas(mazojugador,2)
 
         victoria = False
         while not victoria:
-            Turno.empezar_turno(id_turno)
+            Turno.empezar_turno(id_turno,victoria)
+            if not victoria:
+                Turno.actualizar_turno(jugadorbatalla_1.batalla)
 
-            Turno.actualizar_turno(jugadorbatalla_1.batalla)
-
-            victoria = check_victoria()
         #CartaMazoJugador.robar_cartas(self,jugadorbatalla_1,mano,3)
         #CartaMazoJugador.robar_cartas(self,jugadorbatalla_2,mano,3)
-        #Se debería crear función para hacer seguimiento del turno y no meter el turno en cada función.
 
 class Turno(models.Model):
     batalla = models.ForeignKey(Batalla, on_delete=models.CASCADE)
     turno = models.PositiveIntegerField(default=1)
 
     def registrar_turno(self,batalla):
-        self.objects.create(batalla=batalla)
-        self.save()
-        return self
+        turno = Turno.objects.create(batalla=batalla)
+        return turno
     def actualizar_turno(self,batalla):
-        turno_anterior = self.objects.filter(batalla=batalla).first()
-        este_turno= self.objects.create(batalla=batalla,turno=turno_anterior.turno)
-        este_turno.turno += 1
-        self.save()
+        turno_anterior = Turno.objects.filter(batalla=batalla).order_by('id').last()
+        Turno.objects.create(batalla=batalla,turno=turno_anterior.turno+1)
+
     class Meta:
         unique_together = ('batalla', 'turno',)
 
-    def empezar_turno(self,id_turno,jugadoresbatalla):
+    def empezar_turno(self,jugadoresbatalla,victoria):
         for jugadorbatalla in jugadoresbatalla:
             TurnoJugador.empezar_turnojugador(jugadorbatalla)
+            if victoria == True:
+                return ganador
+
 
 
 class JugadorBatalla(models.Model):
     batalla = models.ForeignKey(Batalla, on_delete=models.CASCADE)
     jugador = models.ForeignKey(JugadorEntrenador, on_delete=models.CASCADE)
     mazo = models.ForeignKey(Mazo, on_delete=models.CASCADE)
+    puntos = models.PositiveIntegerField(default=0)
 
     class Meta:
         unique_together = (('batalla', 'jugador','mazo'),)
 
     def registrar_jugadorbatalla(self,batalla,jugador,mazo):
-        self.objects.create(batalla=batalla, jugador=jugador, mazo=mazo)
-        self.save()
-        return self
+        jugadorbatalla = JugadorBatalla.objects.create(batalla=batalla, jugador=jugador, mazo=mazo)
+        return jugadorbatalla
+
+    def check_victoria(self,jugadorbatalla,victoria):
+        jugadores = JugadorBatalla.objects.filter()
+        if jugadorbatalla.puntos >= 2:
+            victoria = True
+            return victoria
+        return victoria
+
+    def ganar_punto(self,turnojugador):
+        pass
+
 
 
 class TurnoJugador(models.Model):
     turno = models.ForeignKey(Turno, on_delete=models.CASCADE)
     jugadorbatalla = models.ForeignKey(JugadorBatalla, on_delete=models.CASCADE)
-    energia = models.PositiveIntegerField(default=0) #pasar a jugadorbatalla
+    energia = models.PositiveIntegerField(default=0)
 
     class Meta:
         unique_together = ('turno', 'jugadorbatalla')
@@ -102,21 +112,26 @@ class TurnoJugador(models.Model):
         self.save()
 
     def registrar_turnojugador(self,id_turno,jugadorbatalla):
-        turnojugador = self.objects.create(turno=id_turno, jugadorbatalla=jugadorbatalla)
-        self.registrar_todo_por_turnojugador(turnojugador)
-        self.save()
+        turnojugador = TurnoJugador.objects.create(turno=id_turno, jugadorbatalla=jugadorbatalla)
+        return turnojugador
 
-    def registrar_todo_por_turnojugador(self,turnojugador):
+    @staticmethod
+    def registrar_todo_por_turnojugador(turnojugador):
         CartaActivaJugador.registrar_cartaactivajugador(turnojugador)
         MazoJugador.registrar_mazojugador(turnojugador)
         ManoJugador.registrar_manojugador(turnojugador)
         DescartesJugador.registrar_descartesjugador(turnojugador)
         ReservaJugador.registrar_reservajugador(turnojugador)
 
-    def empezar_turnojugador(self,jugadorbatalla):
+    def empezar_turnojugador(self,jugadorbatalla,victoria):
         self.dar_energia(1)
         mazojugador = MazoJugador.objects.filter(jugador=jugadorbatalla).first()
         CartaMazoJugador.robar_cartas(mazojugador,1)
+        final_turnojugador = False
+        while not final_turnojugador:
+            #Listener_de_accion #Debe retornar 'final_jugador = True' si la accion acaba el turno
+            JugadorBatalla.check_victoria(jugadorbatalla,victoria)
+        return victoria
 
 class MazoJugador(models.Model):
     batalla = models.ForeignKey(Batalla, on_delete=models.CASCADE)
@@ -124,12 +139,12 @@ class MazoJugador(models.Model):
     jugador = models.ForeignKey(JugadorBatalla, on_delete=models.CASCADE)
 
     def registrar_mazojugador(self,turnojugador):
-        mazojugador = self.objects.create(batalla=turnojugador.jugadorbatalla.batalla, turno=turnojugador, jugador=turnojugador.jugadorbatalla)
+        mazojugador = MazoJugador.objects.create(batalla=turnojugador.jugadorbatalla.batalla, turno=turnojugador, jugador=turnojugador.jugadorbatalla)
         CartaMazoJugador.llenar_mazo(mazojugador,turnojugador.jugadorbatalla.mazo)
-        self.save()
+        CartaMazoJugador.save()
 
     def actualizar_mazojugador(self,turnojugador):
-        mazojugador_anterior = self.objects.filter(jugador=turnojugador.jugadorbatalla).first()
+        mazojugador_anterior = MazoJugador.objects.filter(jugador=turnojugador.jugadorbatalla).first()
         mazojugador_anterior.turno = turnojugador
         self.save()
 
@@ -140,10 +155,10 @@ class CartaMazoJugador(models.Model):
     def llenar_mazo(self,mazojugador, mazo):
         cartas_en_mazo = CartaMazo.objects.filter(mazo=mazo)
         for carta in cartas_en_mazo:
-            self.objects.create(mazojugador=mazojugador, carta=carta.carta)
+            CartaMazoJugador.objects.create(mazojugador=mazojugador, carta=carta.carta)
 
-    def robar_cartas(self, mazojugador, num_cartas): #REHACER
-        cartas_disponibles = self.objects.filter(mazojugador=mazojugador)
+    def robar_cartas(self, mazojugador, num_cartas):
+        cartas_disponibles = CartaMazoJugador.objects.filter(mazojugador=mazojugador)
         cartas_a_robar = random.sample(list(cartas_disponibles), min(num_cartas, len(cartas_disponibles)))
         turnojugador = MazoJugador.objects.filter(turno=mazojugador.turno).first()
         mano = ManoJugador.objects.filter(turno=turnojugador).first()
@@ -159,11 +174,10 @@ class ManoJugador(models.Model):
     jugador = models.ForeignKey(JugadorBatalla, on_delete=models.CASCADE)
 
     def registrar_manojugador(self,turnojugador):
-        self.create(batalla=turnojugador.batalla, turno=turnojugador, jugador=turnojugador.jugadorbatalla)
-        self.save()
+        ManoJugador.objects.create(batalla=turnojugador.batalla, turno=turnojugador, jugador=turnojugador.jugadorbatalla)
 
     def actualizar_manojugador(self,turnojugador):
-        manojugador_anterior = self.objects.filter(jugador=turnojugador.jugadorbatalla).first().update(turno=turnojugador)
+        manojugador_anterior = ManoJugador.objects.filter(jugador=turnojugador.jugadorbatalla).first().update(turno=turnojugador)
         manojugador_anterior.turno = turnojugador
         self.save()
 
@@ -191,27 +205,53 @@ class CartaActivaJugador(models.Model):
     carta = models.ForeignKey(CartaMazo,on_delete=models.CASCADE, blank=True, null=True)
 
     def registrar_cartaactivajugador(self,turnojugador):
-        self.objects.create(batalla=turnojugador.jugadorbatalla.batalla, turno=turnojugador,jugador=turnojugador.jugadorbatalla)
-        self.save()
+        CartaActivaJugador.objects.create(batalla=turnojugador.jugadorbatalla.batalla, turno=turnojugador,jugador=turnojugador.jugadorbatalla)
 
     def actualizar_cartaactivajugador(self,turnojugador):
-        cartaactivajugador_anterior = self.objects.filter(jugador=turnojugador.jugadorbatalla).first()
+        cartaactivajugador_anterior = CartaActivaJugador.objects.filter(jugador=turnojugador.jugadorbatalla).order_by("id").first()
         cartaactivajugador_anterior.turno = turnojugador
-        self.save()
+        cartaactivajugador_anterior.save()
 
     def cambiar_carta_activa(self,carta):
-        cartaactivajugador_anterior = self.objects.filter(jugador=carta.mano.jugadorbatalla).first()#REVISAR
-        CartaReservaJugador.enviar_a_reserva(cartaactivajugador_anterior)
+        cartaactivajugador_anterior = CartaActivaJugador.objects.filter(jugador=carta.mano.jugadorbatalla).order_by("id").first()
+        cartaactivajugador_anterior.enviar_a_reserva()
         cartaactivajugador_anterior.carta = carta.carta
-        self.save()
+        carta.save()
 
-    def atacar(self,objetivo,ataque):  #REHACER
-        objetivo.salud =- ataque.poder
-        if objetivo.salud <= 0:
-            objetivo.salud = 0
-            carta_debilitada(objetivo)
-            ganar_punto(1)
-        pass
+    def enviar_a_reserva(self):
+        reserva = ReservaJugador.objects.filter(turno=self.turno,jugador=self.jugador).order_by("id").first()
+        try:
+            ReservaJugador.objects.create(reserva=reserva,carta=self.carta)
+        except:
+            print(f"Has llegado al máximo de carta en reserva")
+
+    def atacar(self,cartaactivaatacante, ataque, cartaactivaobjetivo):  #ACCION QUE ACABA TURNO
+        salud_max = CartaPokemon.objects.filter(pokemon= cartaactivaobjetivo.carta.carta.pokemon).first().salud_max
+        poder = CartaPokemonAtaque.objects.filter(id = ataque).first().damage
+        contadores = poder/10
+        carta_actualizada = ContadoresSaludCarta.anadir_contadores(objetivo.carta,contadores)
+        if salud_max <= carta_actualizada.contadores * 10:
+            JugadorBatalla.ganar_punto(cartaactivaatacante.jugador)
+            CartaDescartesJugador.carta_a_descartes(cartaactivaobjetivo)
+        final_turnojugador = True
+        return final_turnojugador
+
+class ContadoresSaludCarta(models.Model):
+    carta = models.ForeignKey(CartaMazo, on_delete=models.CASCADE)
+    contadores = models.PositiveIntegerField(default=0)
+
+    def anadir_contadores(self,cartamazo,contadores):
+        carta_contadores = ContadoresSaludCarta.objects.filter(cartamazo=cartamazo).first()
+        if carta_contadores.exists():
+            contadores_totales = contadores + carta_contadores.contadores
+            carta_actualizada = carta_contadores.objects.update(contadores=contadores_totales)
+        else:
+            carta_actualizada = ContadoresSaludCarta.objects.update(carta=cartamazo, contadores=contadores)
+
+        return carta_actualizada
+
+
+
 
 
 class DescartesJugador(models.Model):
@@ -220,21 +260,19 @@ class DescartesJugador(models.Model):
     jugador = models.ForeignKey(JugadorBatalla, on_delete=models.CASCADE)
 
     def registrar_descartesjugador(self,turnojugador):
-        self.objects.create(batalla=turnojugador.jugadorbatalla.batalla, turno=turnojugador, jugadorbatalla=turnojugador.jugadorbatalla)
-        self.save()
+        DescartesJugador.objects.create(batalla=turnojugador.jugadorbatalla.batalla, turno=turnojugador, jugadorbatalla=turnojugador.jugadorbatalla)
 
     def actualizar_descartesjugador(self,turnojugador):
-        descartesjugador_anterior = self.objects.filter(jugador=turnojugador.jugadorbatalla).first()
+        descartesjugador_anterior = DescartesJugador.objects.filter(jugador=turnojugador.jugadorbatalla).order_by("id").first()
         descartesjugador_anterior.turno = turnojugador
-        self.save()
+        descartesjugador_anterior.save()
 
 class CartaDescartesJugador(models.Model):
     descarte = models.ForeignKey(DescartesJugador, on_delete=models.CASCADE)
     carta = models.ForeignKey(CartaMazo, on_delete=models.CASCADE)
 
     def carta_a_descartes(self, carta, descarte):
-        self.objects.create(descarte=descarte,carta=carta)
-        self.save()
+        CartaDescartesJugador.objects.create(descarte=descarte,carta=carta)
 
 
 class ReservaJugador(models.Model):
@@ -243,11 +281,10 @@ class ReservaJugador(models.Model):
     jugador = models.ForeignKey(JugadorBatalla, on_delete=models.CASCADE)
 
     def registrar_reservajugador(self,turnojugador):
-        self.create(batalla=turnojugador.jugadorbatalla.batalla,turno=turnojugador,jugadorbatalla=turnojugador.jugadorbatalla)
-        self.save()
+        ReservaJugador.objects.create(batalla=turnojugador.jugadorbatalla.batalla,turno=turnojugador,jugadorbatalla=turnojugador.jugadorbatalla)
 
     def actualizar_reserva(self,turnojugador):
-        reservajugador_anterior = self.objects.filter(jugador=turnojugador.jugadorbatalla).first()
+        reservajugador_anterior = ReservaJugador.objects.filter(jugador=turnojugador.jugadorbatalla).first()
         reservajugador_anterior.turno = turnojugador
         self.save()
 
@@ -255,17 +292,21 @@ class CartaReservaJugador(models.Model):
     reserva = models.ForeignKey(ReservaJugador, on_delete=models.CASCADE)
     carta = models.ForeignKey(CartaMazo, on_delete=models.CASCADE)
 
-    def rejugar_carta(self, carta_a_jugar,carta_a_reserva): #intercambiar carta_reserva y carta_activa
-        self.objects.create(reserva=carta_a_jugar.reserva,carta=carta_a_reserva.carta)
-        CartaActivaJugador.cambiar_carta_activa(carta_a_jugar)
-        CartaReservaJugador.objects.filter(reserva=carta_a_jugar.reserva,carta=carta_a_jugar.carta).first().delete()
-        self.save()
+    class Meta:
+        unique_together = ('reserva', 'carta',)
 
-    def enviar_a_reserva(self,cartaactiva):
-        turnojugador = CartaActivaJugador.objects.filter(turno=cartaactiva.turno).first()
-        reserva = ReservaJugador.objects.filter(turno=turnojugador.turno).first()
-        self.objects.create(reserva=reserva,carta=cartaactiva.carta)
-        self.save()
+    def rejugar_carta(self, carta_a_jugar,carta_a_reserva): #ACCION QUE NO ACABA TURNO
+        carta_temporal = carta_a_jugar.carta
+        carta_a_jugar.carta = carta_a_reserva.carta
+        carta_a_reserva.carta = carta_temporal
+        carta_a_jugar.save()
+        carta_a_reseva.save()
+
+    def clean(self):
+        if self.jugador.cartareservajugador_set.count() >= 3:
+            raise ValidationError("La reserva ya tiene el máximo de 3 cartas asignadas.")
+
+
 
 class AccionTurnoJugador(models.Model):
     ACCION = [
@@ -280,5 +321,4 @@ class AccionTurnoJugador(models.Model):
     accion = models.CharField(max_length=50, choices=ACCION, null=True, blank=True)
 
     def registrar_accion(self, turnojugador, accion, objetivo=None):
-        self.objects.create(batalla=turnojugador.jugadorbatalla.batalla,turno=turnojugador,jugador=turnojugador.jugadorbatalla,accion=accion)
-        self.save()
+        AccionTurnoJugador.objects.create(batalla=turnojugador.jugadorbatalla.batalla,turno=turnojugador,jugador=turnojugador.jugadorbatalla,accion=accion)

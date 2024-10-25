@@ -45,15 +45,15 @@ class ReservaJugadorAdmin(admin.ModelAdmin):
     readonly_fields = ('batalla','turno','jugador')
     inlines = [ReservaJugadorTurnoInline]
 
-class CartaActivaJugadorTurnoInline(admin.TabularInline):
-    model = CartaActivaJugador
-    readonly_fields = ('batalla', 'turno','jugador','carta')
-    can_delete = False
+#class CartaActivaJugadorTurnoInline(admin.TabularInline):
+#    model = CartaActivaJugador
+#    readonly_fields = ('batalla', 'turno','jugador','carta')
+#    can_delete = False
 
-@admin.register(TurnoJugador)
-class CartaActivaJugadorAdmin(admin.ModelAdmin):
-    readonly_fields = ('batalla','turno','jugador','energia')
-    inlines = [CartaActivaJugadorTurnoInline]
+#@admin.register(TurnoJugador)
+#class CartaActivaJugadorAdmin(admin.ModelAdmin):
+#    readonly_fields = ('turno','jugadorbatalla','energia')
+#    inlines = [CartaActivaJugadorTurnoInline]
 
 
 
