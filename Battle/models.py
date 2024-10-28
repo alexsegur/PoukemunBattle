@@ -15,58 +15,56 @@ class Batalla(models.Model):
 
     @staticmethod
     def registrar_batalla():
-        batalla = Batalla.objects.create()
-        return batalla
+        return Batalla.objects.create()
+
 
     def __str__(self):
         return self.nombre
 
-    def iniciar_batalla(self, jugador_1, jugador_2, mazo_1, mazo_2):
-        batalla1=self.registrar_batalla()
-        jugadorbatalla_1 = JugadorBatalla.registrar_jugadorbatalla(batalla1, jugador_1, mazo_1)
-        jugadorbatalla_2 = JugadorBatalla.registrar_jugadorbatalla(batalla1,jugador_2,mazo_2)
-        return jugadorbatalla_1, jugadorbatalla_2
+    @staticmethod
+    def iniciar_batalla(jugador_1, jugador_2, mazo_1, mazo_2):
+        batalla = Batalla.registrar_batalla()
+        jugadorbatalla_1 = JugadorBatalla.registrar_jugadorbatalla(jugador_1, mazo_1)
+        jugadorbatalla_2 = JugadorBatalla.registrar_jugadorbatalla(jugador_2, mazo_2)
+        return jugadorbatalla_1, jugadorbatalla_2, batalla
 
     def batallar(self,jugador_1,jugador_2, mazo_1,mazo_2):
-        jugadorbatalla_1,jugadorbatalla_2 = self.iniciar_batalla(jugador_1,jugador_2,mazo_1,mazo_2)
-        id_turno = Turno.registrar_turno(jugadorbatalla_1.batalla)
+        jugadorbatalla_1,jugadorbatalla_2,batalla = self.iniciar_batalla(jugador_1,jugador_2, mazo_1, mazo_2)
         jugadoresbatalla = [jugadorbatalla_1,jugadorbatalla_2]
+        turno = Turno.registrar_turno()
+
         for jugadorbatalla in jugadoresbatalla:
-            turnojugador = TurnoJugador.registrar_turnojugador(id_turno,jugadorbatalla)
-            TurnoJugador.registrar_todo_por_turnojugador()
+            turnojugador = TurnoJugador.registrar_turnojugador(turno,jugadorbatalla)
+            TurnoJugador.registrar_todo_por_turnojugador(turnojugador)
             CartaMazoJugador.llenar_mazo(jugadorbatalla, jugadorbatalla.mazo)
-            mazojugador = MazoJugador.objects.filter(jugador=jugadorbatalla).first()
+            mazojugador = MazoJugador.objects.get(jugador=jugadorbatalla, batalla=batalla, turnojugador=turnojugador)
             CartaMazoJugador.robar_cartas(mazojugador,2)
 
         victoria = False
         while not victoria:
-            Turno.empezar_turno(id_turno,victoria)
-            if not victoria:
-                Turno.actualizar_turno(jugadorbatalla_1.batalla)
+            Turno.empezar_turno()
+            nuevo_idturno = Turno.actualizar_turno()
+            for jugadorbatalla in jugadoresbatalla:
+                TurnoJugador.actualizar_turnojugador(nuevo_idturno,jugadorbatalla)
 
-        #CartaMazoJugador.robar_cartas(self,jugadorbatalla_1,mano,3)
-        #CartaMazoJugador.robar_cartas(self,jugadorbatalla_2,mano,3)
 
 class Turno(models.Model):
     batalla = models.ForeignKey(Batalla, on_delete=models.CASCADE)
     turno = models.PositiveIntegerField(default=1)
 
-    def registrar_turno(self,batalla):
-        turno = Turno.objects.create(batalla=batalla)
-        return turno
-    def actualizar_turno(self,batalla):
-        turno_anterior = Turno.objects.filter(batalla=batalla).order_by('id').last()
-        Turno.objects.create(batalla=batalla,turno=turno_anterior.turno+1)
+    @staticmethod
+    def registrar_turno(batalla):
+        return Turno.objects.create(batalla=batalla)
 
-    class Meta:
-        unique_together = ('batalla', 'turno',)
+    @staticmethod
+    def actualizar_turno(batalla):
+        turno_anterior = Turno.objects.filter(batalla=batalla).lastest('turno').turno
+        return Turno.objects.create(batalla=batalla, turno=turno_anterior + 1)
 
-    def empezar_turno(self,jugadoresbatalla,victoria):
+    @staticmethod
+    def empezar_turno(jugadoresbatalla):
         for jugadorbatalla in jugadoresbatalla:
             TurnoJugador.empezar_turnojugador(jugadorbatalla)
-            if victoria == True:
-                return ganador
-
 
 
 class JugadorBatalla(models.Model):
@@ -76,22 +74,25 @@ class JugadorBatalla(models.Model):
     puntos = models.PositiveIntegerField(default=0)
 
     class Meta:
-        unique_together = (('batalla', 'jugador','mazo'),)
+        unique_together = ('batalla', 'jugador','mazo')
 
-    def registrar_jugadorbatalla(self,batalla,jugador,mazo):
-        jugadorbatalla = JugadorBatalla.objects.create(batalla=batalla, jugador=jugador, mazo=mazo)
-        return jugadorbatalla
+    @staticmethod
+    def registrar_jugadorbatalla(batalla, jugador, mazo):
+        return JugadorBatalla.objects.create(batalla=batalla, jugador=jugador, mazo=mazo)
 
-    def check_victoria(self,jugadorbatalla,victoria):
-        jugadores = JugadorBatalla.objects.filter()
-        if jugadorbatalla.puntos >= 2:
-            victoria = True
-            return victoria
-        return victoria
+    def ganar_punto(self, jugadorbatalla):
+        jugadorbatalla.puntos += 1
+        jugadorbatalla.save()
+        jugadorbatalla.check_victoria()
 
-    def ganar_punto(self,turnojugador):
-        pass
+    def check_victoria(self):
+        jugadores = JugadorBatalla.objects.filter(batalla = self.batalla)
+        for jugador in jugadores:
+            if jugador.puntos >= 2:
+                jugador.eres_ganador()
 
+    def eres_ganador(self):
+        print(f"{self.jugador.nombre} es el ganador",self)
 
 
 class TurnoJugador(models.Model):
@@ -102,10 +103,8 @@ class TurnoJugador(models.Model):
     class Meta:
         unique_together = ('turno', 'jugadorbatalla')
 
-    def actualizar_turnojugador(self,id_turno,jugadorbatalla):
-        self.turno = id_turno
-        self.jugadorbatalla = jugadorbatalla
-        self.save()
+    def actualizar_turnojugador(self,idturno,jugadorbatalla): #REHACER
+        TurnoJugador.objects.create(turno=idturno, jugadorbatalla=jugadorbatalla)
 
     def dar_energia(self,num_energia):
         self.energia += num_energia
@@ -115,6 +114,7 @@ class TurnoJugador(models.Model):
         turnojugador = TurnoJugador.objects.create(turno=id_turno, jugadorbatalla=jugadorbatalla)
         return turnojugador
 
+
     @staticmethod
     def registrar_todo_por_turnojugador(turnojugador):
         CartaActivaJugador.registrar_cartaactivajugador(turnojugador)
@@ -123,15 +123,16 @@ class TurnoJugador(models.Model):
         DescartesJugador.registrar_descartesjugador(turnojugador)
         ReservaJugador.registrar_reservajugador(turnojugador)
 
-    def empezar_turnojugador(self,jugadorbatalla,victoria):
+    def empezar_turnojugador(self,jugadorbatalla):
         self.dar_energia(1)
         mazojugador = MazoJugador.objects.filter(jugador=jugadorbatalla).first()
         CartaMazoJugador.robar_cartas(mazojugador,1)
         final_turnojugador = False
         while not final_turnojugador:
-            #Listener_de_accion #Debe retornar 'final_jugador = True' si la accion acaba el turno
-            JugadorBatalla.check_victoria(jugadorbatalla,victoria)
-        return victoria
+            accion_elegida = request.POST.get('accion')
+            #Listener_de_accion #TODO Debe retornar 'final_jugador = True' si la accion acaba el turno
+            #TODo Añadir check_victoria a las acciones que puedan hacer ganar puntos.
+
 
 class MazoJugador(models.Model):
     batalla = models.ForeignKey(Batalla, on_delete=models.CASCADE)
@@ -157,7 +158,8 @@ class CartaMazoJugador(models.Model):
         for carta in cartas_en_mazo:
             CartaMazoJugador.objects.create(mazojugador=mazojugador, carta=carta.carta)
 
-    def robar_cartas(self, mazojugador, num_cartas):
+    @staticmethod
+    def robar_cartas(mazojugador, num_cartas):
         cartas_disponibles = CartaMazoJugador.objects.filter(mazojugador=mazojugador)
         cartas_a_robar = random.sample(list(cartas_disponibles), min(num_cartas, len(cartas_disponibles)))
         turnojugador = MazoJugador.objects.filter(turno=mazojugador.turno).first()
@@ -229,7 +231,7 @@ class CartaActivaJugador(models.Model):
         salud_max = CartaPokemon.objects.filter(pokemon= cartaactivaobjetivo.carta.carta.pokemon).first().salud_max
         poder = CartaPokemonAtaque.objects.filter(id = ataque).first().damage
         contadores = poder/10
-        carta_actualizada = ContadoresSaludCarta.anadir_contadores(objetivo.carta,contadores)
+        carta_actualizada = ContadoresSaludCarta.anadir_contadores(cartaactivaobjetivo.carta,contadores)
         if salud_max <= carta_actualizada.contadores * 10:
             JugadorBatalla.ganar_punto(cartaactivaatacante.jugador)
             CartaDescartesJugador.carta_a_descartes(cartaactivaobjetivo)

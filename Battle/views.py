@@ -1,8 +1,6 @@
 from django.shortcuts import render
 from Core.models import JugadorEntrenador,Mazo
 from .models import JugadorBatalla,Batalla
-from .admin import BatallaJugadorAdmin
-from .models import
 from django.views.generic.base import TemplateView
 
 
