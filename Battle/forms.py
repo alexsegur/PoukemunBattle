@@ -1,13 +1,10 @@
 from django import forms
-from .models import JugadorEntrenador,Mazo
+from .models import JugadorEntrenador, Mazo
 
 
 class GetPlayersForm(forms.Form):
     jugador_1 = forms.ModelChoiceField(queryset=JugadorEntrenador.objects.all(), label="Selecciona Jugador 1")
-    mazo_1 = forms.ModelChoiceField(queryset=Mazo.objects.filter(entrenador=jugador_1).all(), label="Selecciona mazo del Jugador 1")
-
     jugador_2 = forms.ModelChoiceField(queryset=JugadorEntrenador.objects.all(), label="Selecciona Jugador 2")
-    mazo_2 = forms.ModelChoiceField(queryset=Mazo.objects.filter(entrenador=jugador_2).all(), label="Selecciona mazo del Jugador 2")
 
     def clean(self):
         cleaned_data = super().clean()
@@ -18,6 +15,22 @@ class GetPlayersForm(forms.Form):
             raise forms.ValidationError("Jugador 1 y Jugador 2 no pueden ser el mismo jugador.")
 
         return cleaned_data
+
+
+class GetDecksForm(forms.Form):
+    mazo_jugador_1 = forms.ModelChoiceField(queryset=Mazo.objects.none(), label="Selecciona mazo 1")
+    mazo_jugador_2 = forms.ModelChoiceField(queryset=Mazo.objects.none(), label="Selecciona mazo 2")
+
+    def __init__(self, *args, **kwargs):
+        jugador_1 = kwargs.pop('jugador_1', None)
+        jugador_2 = kwargs.pop('jugador_2', None)
+        super().__init__(*args, **kwargs)
+
+        if jugador_1:
+            self.fields['mazo_jugador_1'].queryset = Mazo.objects.filter(entrenador=jugador_1)
+        if jugador_2:
+            self.fields['mazo_jugador_2'].queryset = Mazo.objects.filter(entrenador=jugador_2)
+
 
 class GetActionForm(forms.Form):
     pass
