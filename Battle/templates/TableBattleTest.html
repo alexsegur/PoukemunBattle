@@ -14,27 +14,31 @@
             <div class="col-md-6 player-1">
                 <div class="card-section">
                     <div class="card-title">Jugador 1 - Carta Activa</div>
-                    <div class="card-slot">Carta Activa</div>
+                    <div class="card-slot">{{ carta_activa_jugador_1.carta.carta.pokemon.nombre_pokemon}}</div>
                 </div>
                 <div class="card-section">
                     <div class="card-title">Jugador 1 - Reserva</div>
-                    <div class="card-slot">Reserva</div>
+                    {% for cartareserva in carta_reserva_jugador_1 %}
+                        <div class="card-slot">{{ cartareserva.carta.carta.pokemon.nombre_pokemon }}</div>
+                    {% end for %}
                 </div>
                 <div class="card-section">
                     <div class="card-title">Jugador 1 - Descartes</div>
-                    <div class="card-slot">Descartes</div>
+                    {% for cartadescartes in carta_descartes_jugador_1 %}
+                        <div class="card-slot">{{ cartadescartes.carta.carta.pokemon.nombre_pokemon }}</div>
+                    {% end for %}
                 </div>
                 <div class="card-section">
                     <div class="card-title">Jugador 1 - Mazo</div>
-                    <div class="card-slot">Mazo</div>
+                    {% for cartamazo in carta_mazo_jugador_1 %}
+                        <div class="card-slot">{{ cartamazo.carta.carta.pokemon.nombre_pokemon }}</div>
+                    {% end for %}
                 </div>
                 <div class="card-section hand-cards">
                     <div class="card-title">Jugador 1 - Mano</div>
-                    <div class="card-slot">Carta 1</div>
-                    <div class="card-slot">Carta 2</div>
-                    <div class="card-slot">Carta 3</div>
-                    <div class="card-slot">Carta 4</div>
-                    <div class="card-slot">Carta 5</div>
+                    {% for cartamano in carta_mano_jugador_1 %}
+                        <div class="card-slot">{{ cartamano.carta.carta.pokemon.nombre_pokemon }}</div>
+                    {% end for %}
                 </div>
             </div>
 
@@ -42,27 +46,31 @@
             <div class="col-md-6 player">
                 <div class="card-section">
                     <div class="card-title">Jugador 2 - Carta Activa</div>
-                    <div class="card-slot">Carta Activa</div>
+                    <div class="card-slot">{{ carta_activa_jugador_2.carta.carta.pokemon.nombre_pokemon}}</div>
                 </div>
                 <div class="card-section">
                     <div class="card-title">Jugador 2 - Reserva</div>
-                    <div class="card-slot">Reserva</div>
+                    {% for cartareserva in carta_reserva_jugador_2 %}
+                        <div class="card-slot">{{ cartareserva.carta.carta.pokemon.nombre_pokemon }}</div>
+                    {% end for %}
                 </div>
                 <div class="card-section">
                     <div class="card-title">Jugador 2 - Descartes</div>
-                    <div class="card-slot">Descartes</div>
+                    {% for cartadescartes in carta_descartes_jugador_2 %}
+                        <div class="card-slot">{{ cartadescartes.carta.carta.pokemon.nombre_pokemon }}</div>
+                    {% end for %}
                 </div>
                 <div class="card-section">
                     <div class="card-title">Jugador 2 - Mazo</div>
-                    <div class="card-slot">Mazo</div>
+                    {% for cartamazo in carta_mazo_jugador_2 %}
+                        <div class="card-slot">{{ cartamazo.carta.carta.pokemon.nombre_pokemon }}</div>
+                    {% end for %}
                 </div>
                 <div class="card-section hand-cards">
                     <div class="card-title">Jugador 2 - Mano</div>
-                    <div class="card-slot">Carta 1</div>
-                    <div class="card-slot">Carta 2</div>
-                    <div class="card-slot">Carta 3</div>
-                    <div class="card-slot">Carta 4</div>
-                    <div class="card-slot">Carta 5</div>
+                    {% for cartamano in carta_mano_jugador_2 %}
+                        <div class="card-slot">{{ cartamano.carta.carta.pokemon.nombre_pokemon }}</div>
+                    {% end for %}
                 </div>
             </div>
         </div>

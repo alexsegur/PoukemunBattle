@@ -1,4 +1,7 @@
 import random
+
+from django.core.exceptions import ValidationError
+
 from Core.models import JugadorEntrenador, CartaMazo, Mazo, CartaPokemon,CartaPokemonAtaque
 from django.db import models
 
@@ -22,30 +25,30 @@ class Batalla(models.Model):
         return self.nombre
 
     @staticmethod
-    def iniciar_batalla(jugador_1, jugador_2, mazo_1, mazo_2):
+    def iniciar_batalla(entrenador_1, entrenador_2, mazo_1, mazo_2):
         batalla = Batalla.registrar_batalla()
-        jugadorbatalla_1 = JugadorBatalla.registrar_jugadorbatalla(jugador_1, mazo_1)
-        jugadorbatalla_2 = JugadorBatalla.registrar_jugadorbatalla(jugador_2, mazo_2)
-        return jugadorbatalla_1, jugadorbatalla_2, batalla
-
-    def batallar(self,jugador_1,jugador_2, mazo_1,mazo_2):
-        jugadorbatalla_1,jugadorbatalla_2,batalla = self.iniciar_batalla(jugador_1,jugador_2, mazo_1, mazo_2)
-        jugadoresbatalla = [jugadorbatalla_1,jugadorbatalla_2]
+        jugadorbatalla_1 = JugadorBatalla.registrar_jugadorbatalla(batalla, entrenador_1, mazo_1)
+        jugadorbatalla_2 = JugadorBatalla.registrar_jugadorbatalla(batalla, entrenador_2, mazo_2)
+        jugadoresbatalla = [jugadorbatalla_1, jugadorbatalla_2]
         turno = Turno.registrar_turno()
 
         for jugadorbatalla in jugadoresbatalla:
-            turnojugador = TurnoJugador.registrar_turnojugador(turno,jugadorbatalla)
+            turnojugador = TurnoJugador.registrar_turnojugador(turno, jugadorbatalla)
             TurnoJugador.registrar_todo_por_turnojugador(turnojugador)
-            CartaMazoJugador.llenar_mazo(jugadorbatalla, jugadorbatalla.mazo)
             mazojugador = MazoJugador.objects.get(jugador=jugadorbatalla, batalla=batalla, turnojugador=turnojugador)
-            CartaMazoJugador.robar_cartas(mazojugador,2)
+            CartaMazoJugador.robar_cartas(mazojugador, 2)
+
+        return batalla, jugadoresbatalla
+
+    def batallar(self,jugadoresbatalla):
+        #jugadoresbatalla = self.iniciar_batalla(jugador_1,jugador_2, mazo_1,mazo_2)
 
         victoria = False
         while not victoria:
-            Turno.empezar_turno()
-            nuevo_idturno = Turno.actualizar_turno()
+            Turno.realizar_turno(jugadoresbatalla)
+            nuevo_turno = Turno.actualizar_turno()
             for jugadorbatalla in jugadoresbatalla:
-                TurnoJugador.actualizar_turnojugador(nuevo_idturno,jugadorbatalla)
+                TurnoJugador.actualizar_turnojugador(nuevo_turno,jugadorbatalla)
 
 
 class Turno(models.Model):
@@ -62,9 +65,10 @@ class Turno(models.Model):
         return Turno.objects.create(batalla=batalla, turno=turno_anterior + 1)
 
     @staticmethod
-    def empezar_turno(jugadoresbatalla):
+    def realizar_turno(jugadoresbatalla):
         for jugadorbatalla in jugadoresbatalla:
-            TurnoJugador.empezar_turnojugador(jugadorbatalla)
+            TurnoJugador.preparar_turnojugador(jugadorbatalla)
+            TurnoJugador.realizar_turnojugador(jugadorbatalla)
 
 
 class JugadorBatalla(models.Model):
@@ -116,22 +120,22 @@ class TurnoJugador(models.Model):
 
 
     @staticmethod
-    def registrar_todo_por_turnojugador(turnojugador):
+    def registrar_todo_por_turnojugador(turnojugador,mazo):
         CartaActivaJugador.registrar_cartaactivajugador(turnojugador)
-        MazoJugador.registrar_mazojugador(turnojugador)
+        MazoJugador.registrar_mazojugador(turnojugador,mazo)
         ManoJugador.registrar_manojugador(turnojugador)
         DescartesJugador.registrar_descartesjugador(turnojugador)
         ReservaJugador.registrar_reservajugador(turnojugador)
 
-    def empezar_turnojugador(self,jugadorbatalla):
+    def preparar_turnojugador(self, jugadorbatalla):
         self.dar_energia(1)
         mazojugador = MazoJugador.objects.filter(jugador=jugadorbatalla).first()
         CartaMazoJugador.robar_cartas(mazojugador,1)
-        final_turnojugador = False
-        while not final_turnojugador:
-            accion_elegida = request.POST.get('accion')
-            #Listener_de_accion #TODO Debe retornar 'final_jugador = True' si la accion acaba el turno
-            #TODo Añadir check_victoria a las acciones que puedan hacer ganar puntos.
+
+    def realizar_turnojugador(self, accion, jugadorbatalla):
+            AccionTurnoJugador.registrar_accion() #Si la acción devuelve True se acaba el turno
+
+
 
 
 class MazoJugador(models.Model):
@@ -302,7 +306,7 @@ class CartaReservaJugador(models.Model):
         carta_a_jugar.carta = carta_a_reserva.carta
         carta_a_reserva.carta = carta_temporal
         carta_a_jugar.save()
-        carta_a_reseva.save()
+        carta_a_reserva.save()
 
     def clean(self):
         if self.jugador.cartareservajugador_set.count() >= 3:
@@ -317,9 +321,9 @@ class AccionTurnoJugador(models.Model):
         ('3', 'Recarga energía'),
         ('4', 'Jugar carta'),
     ]
-    batalla = models.ForeignKey(Batalla, on_delete=models.CASCADE)
-    turno = models.ForeignKey(TurnoJugador, on_delete=models.CASCADE)
-    jugador = models.ForeignKey(JugadorBatalla, on_delete=models.CASCADE)
+    batalla = models.ForeignKey(Batalla, on_delete=models.CASCADE, null=True)
+    turno = models.ForeignKey(TurnoJugador, on_delete=models.CASCADE,null=True)
+    jugador = models.ForeignKey(JugadorBatalla, on_delete=models.CASCADE,null=True)
     accion = models.CharField(max_length=50, choices=ACCION, null=True, blank=True)
 
     def registrar_accion(self, turnojugador, accion, objetivo=None):
