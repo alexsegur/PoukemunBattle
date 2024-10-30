@@ -89,7 +89,7 @@ class MostrarBatallaView(TemplateView):
         pass
 
 
-class CrearBatallaView(TemplateView):
+class SeleccionarJugadorView(TemplateView):
     template_name = 'selectPlayers.html'
 
     def get(self, request, *args, **kwargs):
@@ -134,6 +134,47 @@ class SeleccionarMazoJugadorView(TemplateView):
         form = GetDecksForm(request.POST, jugador_1=jugador_1, jugador_2=jugador_2)
 
         if form.is_valid():
-            return redirect(reverse('nombre_de_la_siguiente_vista'))
+            mazo_1 = form.cleaned_data['mazo_jugador_1']
+            mazo_2 = form.cleaned_data['mazo_jugador_2']
+            return redirect(reverse('mostrar_batalla') + f'?jugador_1={jugador_1.id}&jugador_2={jugador_2.id}&mazo_1={mazo_1.id}&mazo_2={mazo_2.id}')
 
         return self.render_to_response({'form': form})
+
+class InicioDeBatallaView(TemplateView):
+    template_name = 'startBattleTable.html'
+
+    def post(self, request, *args, **kwargs):
+        jugador_1_id = self.request.GET.get('jugador_1')
+        jugador_2_id = self.request.GET.get('jugador_2')
+        mazo_1_id = self.request.GET.get('mazo_1')
+        mazo_2_id = self.request.GET.get('mazo_2')
+
+        jugador_1 = JugadorEntrenador.objects.filter(id=jugador_1_id).first()
+        jugador_2 = JugadorEntrenador.objects.filter(id=jugador_2_id).first()
+        mazo_1 = Mazo.objects.filter(id=mazo_1_id).first()
+        mazo_2 = Mazo.objects.filter(id=mazo_2_id).first()
+
+        batalla,jugadoresbatalla = Batalla.iniciar_batalla(jugador_1,jugador_2,mazo_1,mazo_2)
+
+
+
+
+
+
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        jugador_1_id = self.request.GET.get('jugador_1')
+        jugador_2_id = self.request.GET.get('jugador_2')
+        mazo_1_id = self.request.GET.get('mazo_1')
+        mazo_2_id = self.request.GET.get('mazo_2')
+
+        jugador_1 = JugadorEntrenador.objects.filter(id=jugador_1_id).first()
+        jugador_2 = JugadorEntrenador.objects.filter(id=jugador_2_id).first()
+        mazo_1 = Mazo.objects.filter(id=mazo_1_id).first()
+        mazo_2 = Mazo.objects.filter(id=mazo_2_id).first()
+
+        context['jugador_1'] = ""
+        return context
+
