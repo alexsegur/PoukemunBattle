@@ -56,6 +56,7 @@ class SeleccionarMazoJugadorView(TemplateView):
             mazo_1 = form.cleaned_data['mazo_jugador_1']
             mazo_2 = form.cleaned_data['mazo_jugador_2']
             batalla, _ = Batalla.iniciar_batalla(jugador_1, jugador_2, mazo_1, mazo_2)
+            print(f"batalla en seleccionMazoview: {batalla}")
             return redirect(reverse('mostrar_batalla') + f'?batalla={batalla.id}&jugador_1={jugador_1.id}&jugador_2={jugador_2.id}&mazo_1={mazo_1.id}&mazo_2={mazo_2.id}')
 
         return self.render_to_response({'form': form})
@@ -66,11 +67,11 @@ class InicioDeBatallaView(TemplateView):
 
     def post(self, request, *args, **kwargs):
         # Obtiene los parámetros de la URL
-        jugador_1_id = request.POST.get('jugador_1')
-        jugador_2_id = request.POST.get('jugador_2')
-        mazo_1_id = request.POST.get('mazo_1')
-        mazo_2_id = request.POST.get('mazo_2')
-        batalla_id = request.POST.get('batalla')
+        jugador_1_id = request.GET.get('jugador_1')
+        jugador_2_id = request.GET.get('jugador_2')
+        mazo_1_id = request.GET.get('mazo_1')
+        mazo_2_id = request.GET.get('mazo_2')
+        batalla_id = request.GET.get('batalla')
 
         # Consulta para obtener los jugadores y mazos
         jugador_1 = JugadorEntrenador.objects.filter(id=jugador_1_id).first()
@@ -91,7 +92,7 @@ class InicioDeBatallaView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        batalla_id = self.request.POST.get('batalla')
+        batalla_id = self.request.GET.get('batalla')
         batalla = Batalla.objects.filter(id=batalla_id).first
         print(f'Esto son batalla_id y batalla en get_context():{batalla_id}, {batalla}')
 
@@ -103,12 +104,12 @@ class InicioDeBatallaView(TemplateView):
             jugador_2 = jugadores_batalla[1]
 
             # Obtener el último turno y los datos correspondientes a los jugadores
-            turno = Turno.objects.filter(batalla=batalla).latest('turno')
+            turno = Turno.objects.filter(batalla=batalla_id).latest('turno')
             turnojugador_1 = TurnoJugador.objects.filter(turno=turno, jugadorbatalla=jugador_1).first()
             turnojugador_2 = TurnoJugador.objects.filter(turno=turno, jugadorbatalla=jugador_2).first()
 
             # Datos del Jugador 1
-            carta_activa_jugador_1 = CartaActivaJugador.objects.filter(batalla=batalla, jugador=jugador_1, turno=turnojugador_1).all()
+            carta_activa_jugador_1 = CartaActivaJugador.objects.filter(batalla=batalla_id, jugador=jugador_1, turno=turnojugador_1).all()
             reserva_jugador_1 = ReservaJugador.objects.filter(batalla=batalla, jugador=jugador_1, turno=turnojugador_1).first()
             descartes_jugador_1 = DescartesJugador.objects.filter(batalla=batalla, jugador=jugador_1, turno=turnojugador_1).first()
             mazo_jugador_1 = MazoJugador.objects.filter(batalla=batalla, jugador=jugador_1, turno=turnojugador_1).first()
