@@ -1,7 +1,7 @@
-import random
+import json
 
-from django.shortcuts import render
-from Core.models import CartaPokemon, BoosterPack, Coleccion, CartaPokemonAtaque
+from django.http import JsonResponse
+from Core.models import CartaPokemon, BoosterPack, Coleccion
 from django.views.generic.base import TemplateView
 from Core.forms import BoosterPackForm
 
@@ -40,4 +40,38 @@ class IndexView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['pokemons'] = CartaPokemon.objects.all()
+        return context
+
+
+class CollectionCardsView(TemplateView):
+    template_name = 'colection_cards_repeat.html'
+
+    def cards_repeated(self):
+        collections = Coleccion.objects.select_related('entrenador').all()
+
+        resultado = {}
+
+        for collection in collections:
+            entrenador = collection.entrenador
+            carta = collection.pokemon
+
+            if entrenador not in resultado:
+                resultado[entrenador] = {}
+
+            if carta in resultado[entrenador]:
+                resultado[entrenador][carta] += 1
+            else:
+                resultado[entrenador][carta] = 1
+
+        players = [
+            {'nombre': entrenador.nombre,
+                'cartas': [{'carta': carta.nombre_pokemon, 'cantidad': cantidad} for carta, cantidad in cartas.items()]}
+            for entrenador, cartas in resultado.items()
+        ]
+
+        return json.dumps(players)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['collection_by_player'] = self.cards_repeated()
         return context

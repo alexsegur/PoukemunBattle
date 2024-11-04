@@ -66,7 +66,6 @@ class Coleccion(models.Model):  # Tabla intermedia lvl2 Entrenador - CartaPokemo
                 ataque2 = None
             else:
                 ataque1 = random.choice(ataques_posibles)
-                ataques_posibles=-ataque1
                 ataque2 = random.choice(ataques_posibles)
         else:
             ataque1, ataque2 = None, None
