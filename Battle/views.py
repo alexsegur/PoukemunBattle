@@ -102,7 +102,7 @@ class InicioDeBatallaView(TemplateView):
             print(f'jugadores_batalla sale esto:{jugadores_batalla}, {type(jugadores_batalla)}')
             jugador_1 = jugadores_batalla[0]
             jugador_2 = jugadores_batalla[1]
-
+            print(f'id_entrenador = {jugador_1.jugador.id}, id_entrenador = {jugador_2.jugador.id}')
             # Obtener el último turno y los datos correspondientes a los jugadores
             turno = Turno.objects.filter(batalla=batalla_id).latest('turno')
             turnojugador_1 = TurnoJugador.objects.filter(turno=turno, jugadorbatalla=jugador_1).first()

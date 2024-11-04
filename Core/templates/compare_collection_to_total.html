@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Comparación pokemons
+{% endblock %}
+
+{% block content %}
+<body>
+    <main>
+        <div>
+            <h1><b>Comparación de la colección de {{ entrenador.nombre }} con el total</b></h1>
+            <div>
+                <div>
+                    <div id="chart_div" style="height: 1600px">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+<script type="text/javascript">
+        google.charts.load('current', {'packages':['corechart']});
+        google.charts.setOnLoadCallback(drawChart);
+
+        function drawChart() {
+            const data = google.visualization.arrayToDataTable({{ chart_data|safe }});
+
+            const options = {
+                title: 'Comparación de Pokémon en la Colección del Entrenador vs Total',
+                hAxis: {title: 'Pokémon'},
+                vAxis: {title: 'Cantidad'},
+                bars: 'vertical',
+                bar: { groupWidth: "75%" },
+                colors: ['#4285F4', '#DB4437'], // Colores para cada barra (Entrenador y Total)
+                legend: { position: 'top' }
+            };
+
+            const chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
+            chart.draw(data, options);
+        }
+    </script>
+{% endblock %}
