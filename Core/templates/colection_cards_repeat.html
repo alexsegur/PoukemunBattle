@@ -1,0 +1,49 @@
+{% extends "layout.html" %}
+
+{% block title %}
+Lista de pokemons
+{% endblock %}
+
+{% block content %}
+<main>
+    <div>
+        <h1><b>Cartas repetidas por colección</b></h1>
+        <div>
+            <div>
+                <p>Cartas repetidas</p>
+                <div id="repeat_cards" style="height: 1600px">
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+<script type="text/javascript">
+    json_data = {{ collection_by_player|safe }};
+    console.log(json_data);
+
+    google.charts.load('current', {'packages':['corechart']});
+    google.charts.setOnLoadCallback(drawCharts);
+
+    function drawCharts() {
+        json_data.forEach(function(jugador) {
+            var dataArray = [['Carta', 'Cantidad']];
+
+            jugador.cartas.forEach(function(carta) {
+                dataArray.push([carta.carta, carta.cantidad]);
+            });
+
+            var data = google.visualization.arrayToDataTable(dataArray);
+
+            var options = {
+                title: 'Cartas Repetidas de ' + jugador.nombre,
+                pieHole: 0.4,
+            };
+
+            var chart = new google.visualization.PieChart(document.createElement('div'));
+            chart.draw(data, options);
+
+            document.getElementById('repeat_cards').appendChild(chart.getContainer());
+        });
+    }
+</script>
+{% endblock %}
