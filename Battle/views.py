@@ -56,7 +56,6 @@ class SeleccionarMazoJugadorView(TemplateView):
             mazo_1 = form.cleaned_data['mazo_jugador_1']
             mazo_2 = form.cleaned_data['mazo_jugador_2']
             batalla, _ = Batalla.iniciar_batalla(jugador_1, jugador_2, mazo_1, mazo_2)
-            print(f"batalla en seleccionMazoview: {batalla}")
             return redirect(reverse('mostrar_batalla') + f'?batalla={batalla.id}&jugador_1={jugador_1.id}&jugador_2={jugador_2.id}&mazo_1={mazo_1.id}&mazo_2={mazo_2.id}')
 
         return self.render_to_response({'form': form})
@@ -94,12 +93,11 @@ class InicioDeBatallaView(TemplateView):
 
         batalla_id = self.request.GET.get('batalla')
         batalla = Batalla.objects.filter(id=batalla_id).first
-        print(f'Esto son batalla_id y batalla en get_context():{batalla_id}, {batalla}')
 
         if batalla:
             # Obtener los jugadores de la batalla
             jugadores_batalla = JugadorBatalla.objects.filter(batalla=batalla_id).all()
-            print(f'jugadores_batalla sale esto:{jugadores_batalla}, {type(jugadores_batalla)}')
+
             jugador_1 = jugadores_batalla[0]
             jugador_2 = jugadores_batalla[1]
             print(f'id_entrenador = {jugador_1.jugador.id}, id_entrenador = {jugador_2.jugador.id}')
@@ -110,28 +108,32 @@ class InicioDeBatallaView(TemplateView):
 
             # Datos del Jugador 1
             carta_activa_jugador_1 = CartaActivaJugador.objects.filter(batalla=batalla_id, jugador=jugador_1, turno=turnojugador_1).all()
-            reserva_jugador_1 = ReservaJugador.objects.filter(batalla=batalla, jugador=jugador_1, turno=turnojugador_1).first()
-            descartes_jugador_1 = DescartesJugador.objects.filter(batalla=batalla, jugador=jugador_1, turno=turnojugador_1).first()
-            mazo_jugador_1 = MazoJugador.objects.filter(batalla=batalla, jugador=jugador_1, turno=turnojugador_1).first()
-            mano_jugador_1 = ManoJugador.objects.filter(batalla=batalla, jugador=jugador_1, turno=turnojugador_1).first()
+            reserva_jugador_1 = ReservaJugador.objects.filter(batalla=batalla_id, jugador=jugador_1, turno=turnojugador_1).first()
+            descartes_jugador_1 = DescartesJugador.objects.filter(batalla=batalla_id, jugador=jugador_1, turno=turnojugador_1).first()
+            mazo_jugador_1 = MazoJugador.objects.filter(batalla=batalla_id, jugador=jugador_1, turno=turnojugador_1).first()
+            mano_jugador_1 = ManoJugador.objects.filter(batalla=batalla_id, jugador=jugador_1, turno=turnojugador_1).first()
 
             carta_reserva_jugador_1 = CartaReservaJugador.objects.filter(reserva=reserva_jugador_1).all()
-            carta_descartes_jugador_1 = CartaDescartesJugador.objects.filter(descartes=descartes_jugador_1).all()
-            carta_mazo_jugador_1 = CartaMazoJugador.objects.filter(mazo=mazo_jugador_1).all()
+            carta_descartes_jugador_1 = CartaDescartesJugador.objects.filter(descarte=descartes_jugador_1).all()
+            carta_mazo_jugador_1 = CartaMazoJugador.objects.filter(mazojugador=mazo_jugador_1).all()
             carta_mano_jugador_1 = CartaManoJugador.objects.filter(mano=mano_jugador_1).all()
 
+            #Prueba unitaria
+            print(f"Carta en mazo 1 : {carta_descartes_jugador_1}")
+
             # Datos del Jugador 2
-            carta_activa_jugador_2 = CartaActivaJugador.objects.filter(batalla=batalla, jugador=jugador_2, turno=turnojugador_2).all()
-            reserva_jugador_2 = ReservaJugador.objects.filter(batalla=batalla, jugador=jugador_2, turno=turnojugador_2).first()
-            descartes_jugador_2 = DescartesJugador.objects.filter(batalla=batalla, jugador=jugador_2, turno=turnojugador_2).first()
-            mazo_jugador_2 = MazoJugador.objects.filter(batalla=batalla, jugador=jugador_2, turno=turnojugador_2).first()
-            mano_jugador_2 = ManoJugador.objects.filter(batalla=batalla, jugador=jugador_2, turno=turnojugador_2).first()
+            carta_activa_jugador_2 = CartaActivaJugador.objects.filter(batalla=batalla_id, jugador=jugador_2, turno=turnojugador_2).all()
+            reserva_jugador_2 = ReservaJugador.objects.filter(batalla=batalla_id, jugador=jugador_2, turno=turnojugador_2).first()
+            descartes_jugador_2 = DescartesJugador.objects.filter(batalla=batalla_id, jugador=jugador_2, turno=turnojugador_2).first()
+            mazo_jugador_2 = MazoJugador.objects.filter(batalla=batalla_id, jugador=jugador_2, turno=turnojugador_2).first()
+            mano_jugador_2 = ManoJugador.objects.filter(batalla=batalla_id, jugador=jugador_2, turno=turnojugador_2).first()
 
             carta_reserva_jugador_2 = CartaReservaJugador.objects.filter(reserva=reserva_jugador_2).all()
-            carta_descartes_jugador_2 = CartaDescartesJugador.objects.filter(descartes=descartes_jugador_2).all()
-            carta_mazo_jugador_2 = CartaMazoJugador.objects.filter(mazo=mazo_jugador_2).all()
+            carta_descartes_jugador_2 = CartaDescartesJugador.objects.filter(descarte=descartes_jugador_2).all()
+            carta_mazo_jugador_2 = CartaMazoJugador.objects.filter(mazojugador=mazo_jugador_2).all()
             carta_mano_jugador_2 = CartaManoJugador.objects.filter(mano=mano_jugador_2).all()
 
+            print(f"carta_mazo_jugador_2 en get_context : {carta_mazo_jugador_2}") #Queryset vacío
             # Agregar datos al contexto
             context.update({
                 'batalla': batalla,
@@ -147,6 +149,9 @@ class InicioDeBatallaView(TemplateView):
                 'carta_descartes_jugador_2': carta_descartes_jugador_2,
                 'carta_mazo_jugador_2': carta_mazo_jugador_2,
                 'carta_mano_jugador_2': carta_mano_jugador_2,
+                'turnojugador_1': turnojugador_1,  #Solo para pruebas
+                'turnojugador_2': turnojugador_2,  #Solo para pruebas
+                'turno': turno
             })
 
         return context

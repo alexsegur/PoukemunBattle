@@ -19,7 +19,7 @@ class Batalla(models.Model):
     @staticmethod
     def registrar_batalla():
             batalla = Batalla.objects.create()
-            print(f"Batalla creada con ID: {batalla.id}, campos {batalla.nombre},{batalla.fecha}")
+            print(f"Batalla creada con ID: {batalla.id} con nombre: {batalla.nombre}")
             return batalla
 
     @staticmethod
@@ -35,7 +35,9 @@ class Batalla(models.Model):
             turnojugador = TurnoJugador.registrar_turnojugador(turno, jugadorbatalla)
             TurnoJugador.registrar_todo_por_turnojugador(turnojugador)
             mazojugador = MazoJugador.objects.get(jugador=jugadorbatalla, batalla=batalla, turno=turnojugador)
-            CartaMazoJugador.robar_cartas(mazojugador, 2)
+            cartas_mazojugador1 = CartaMazoJugador.objects.filter(mazojugador=mazojugador).all
+            print(f"carta_mazo_jugador_1 en iniciarbatalla: {cartas_mazojugador1}")
+            CartaMazoJugador.robar_cartas(mazojugador, 2) #Aquí el mazo ya está lleno de cartas
 
         return batalla, jugadoresbatalla
 
@@ -132,7 +134,7 @@ class TurnoJugador(models.Model):
     def registrar_todo_por_turnojugador(turnojugador):
         CartaActivaJugador.registrar_cartaactivajugador(turnojugador)
         ManoJugador.registrar_manojugador(turnojugador)
-        MazoJugador.registrar_mazojugador(turnojugador)
+        MazoJugador.registrar_mazojugador(turnojugador) #Y llenar_mazo() dentro de esta función
         DescartesJugador.registrar_descartesjugador(turnojugador)
         ReservaJugador.registrar_reservajugador(turnojugador)
 
@@ -156,7 +158,7 @@ class MazoJugador(models.Model):
     def registrar_mazojugador(turnojugador):
         mazojugador = MazoJugador.objects.create(batalla=turnojugador.jugadorbatalla.batalla, turno=turnojugador, jugador=turnojugador.jugadorbatalla)
         CartaMazoJugador.llenar_mazo(mazojugador,turnojugador.jugadorbatalla.mazo)
-
+        print(f"mazojugador: {mazojugador}, mazo: {turnojugador.jugadorbatalla.mazo}")
     def actualizar_mazojugador(self,turnojugador):
         mazojugador_anterior = MazoJugador.objects.filter(jugador=turnojugador.jugadorbatalla).first()
         mazojugador_anterior.turno = turnojugador
@@ -168,6 +170,7 @@ class CartaMazoJugador(models.Model):
     @staticmethod
     def llenar_mazo(mazojugador, mazo):
         cartas_en_mazo = CartaMazo.objects.filter(mazo=mazo)
+        print(f"carta_en_mazo en llenar_mazo(): {cartas_en_mazo}")
         for carta in cartas_en_mazo:
             CartaMazoJugador.objects.create(mazojugador=mazojugador, carta=carta)
 
