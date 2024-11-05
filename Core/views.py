@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404
 
 from Core.models import CartaPokemon, BoosterPack, Coleccion,JugadorEntrenador
 from django.views.generic.base import TemplateView
-from Core.forms import BoosterPackForm
+from Core.forms import PickEntrenadorForm
 
 
 
@@ -13,11 +13,11 @@ class IndexView(TemplateView):
     template_name = 'pokemon_list.html'
 
     def get(self, request, *args, **kwargs):
-        form = BoosterPackForm()
+        form = PickEntrenadorForm()
         return self.render_to_response({'form': form})
 
     def post(self, request, *args, **kwargs):
-        form = BoosterPackForm(request.POST)
+        form = PickEntrenadorForm(request.POST)
 
         if form.is_valid():
             entrenador = form.cleaned_data['entrenador']
@@ -81,51 +81,87 @@ class CollectionCardsView(TemplateView):
 
 class CompareCollectionToTotalView(TemplateView):
     template_name = 'compare_collection_to_total.html'
-    def repeated_compared_to_total(self):
-        id_entrenador = self.request.GET.get('id_entrenador')
 
-        # Si se proporciona id_entrenador, obtener el entrenador específico
-        entrenador = None
-        if id_entrenador:
-            entrenador = get_object_or_404(JugadorEntrenador, id=id_entrenador)
+    def get(self, request, *args, **kwargs):
+        form = PickEntrenadorForm()
+        return self.render_to_response({'form': form})
 
+    def post(self, request, *args, **kwargs):
+        form = PickEntrenadorForm(request.POST)
+        if form.is_valid():
+            entrenador = form.cleaned_data['entrenador']
+
+            json_comparison = self.join_cards_entrenador_y_total(entrenador)
+            context = {
+                'form': form,
+                'json_comparison': json_comparison,
+                'entrenador': entrenador
+            }
+            return self.render_to_response(context)
+        else:
+            # En caso de error, vuelve a mostrar el formulario
+            context = {'form': form}
+            return self.render_to_response(context)
+
+
+    def cards_repeated_en_entrenador(self,entrenadorjugador):
+
+        entrenador = get_object_or_404(JugadorEntrenador, id=entrenadorjugador.id)
         collections = Coleccion.objects.select_related('entrenador').all()
         resultado = {}
-        total_cartas = {}
 
-        # Procesar cada colección para agrupar las cartas por entrenador y total
         for collection in collections:
             entrenador_obj = collection.entrenador
             carta = collection.pokemon
 
-            # Para la colección del entrenador específico
             if entrenador and entrenador_obj == entrenador:
-                if carta in resultado:
-                    resultado[carta] += 1
+                if entrenador not in resultado:
+                    resultado[entrenador] = {}
+
+                if carta in resultado[entrenador]:
+                    resultado[entrenador][carta] += 1
                 else:
-                    resultado[carta] = 1
+                    resultado[entrenador][carta] = 1
+
+        comparison = [
+            {'nombre': entrenador.nombre,
+                'cartas': [{'carta': carta.nombre_pokemon, 'cantidad': cantidad} for carta, cantidad in cartas.items()]}
+            for entrenador, cartas in resultado.items()
+        ]
+        return comparison
+    def total_cards_repeated(self):
+        collections = Coleccion.objects.all()
+        total_cartas = {}
+
+        for collection in collections:
+            carta = collection.pokemon
+            entrenador = 'total'
 
             # Para el total de cartas en todas las colecciones
-            if carta in total_cartas:
-                total_cartas[carta] += 1
+            if entrenador not in total_cartas:
+                total_cartas[entrenador]={}
+
+            if carta in total_cartas[entrenador]:
+                total_cartas[entrenador][carta] += 1
             else:
-                total_cartas[carta] = 1
+                total_cartas[entrenador][carta] = 1
 
-        # Formatear los datos en una lista de listas para Google Charts
-        chart_data = [["Pokemon", "Cantidad Entrenador", "Cantidad Total"]]
-        for carta, total_count in total_cartas.items():
-            entrenador_count = resultado.get(carta, 0)  # Obtiene la cantidad en el entrenador o 0 si no existe
-            chart_data.append([carta.nombre_pokemon, entrenador_count, total_count])
+        total = [
+            {'nombre': entrenador,
+             'cartas': [{'carta': carta.nombre_pokemon, 'cantidad': cantidad} for carta, cantidad in cartas.items()]}
+            for entrenador, cartas in total_cartas.items()
+        ]
+        return total
 
-        return chart_data
+    def join_cards_entrenador_y_total(self,id_entrenador):
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        id_entrenador = self.request.GET.get('id_entrenador')
-        entrenador = None
-        if id_entrenador:
-            entrenador = get_object_or_404(JugadorEntrenador, id=id_entrenador)
 
-        context['chart_data'] = self.repeated_compared_to_total()
-        context['entrenador'] = entrenador
-        return context
+        # Obtener las cartas del entrenador especificado y las cartas totales
+        comparison = self.cards_repeated_en_entrenador(id_entrenador)
+        total = self.total_cards_repeated()
+
+        if total:
+            comparison.append(total[0])
+
+        return json.dumps(comparison)
+

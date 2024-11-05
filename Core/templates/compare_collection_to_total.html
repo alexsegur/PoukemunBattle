@@ -7,11 +7,15 @@ Comparación pokemons
 {% block content %}
 <body>
     <main>
+        <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Comparar</button>
+        </form>
         <div>
-            <h1><b>Comparación de la colección de {{ entrenador.nombre }} con el total</b></h1>
             <div>
                 <div>
-                    <div id="chart_div" style="height: 1600px">
+                    <div id="chart_div" style="height: 600px">
                     </div>
                 </div>
             </div>
@@ -19,24 +23,52 @@ Comparación pokemons
     </main>
 </body>
 <script type="text/javascript">
-        google.charts.load('current', {'packages':['corechart']});
-        google.charts.setOnLoadCallback(drawChart);
+    google.charts.load('current', {'packages':['corechart']});
+    google.charts.setOnLoadCallback(drawChart);
 
-        function drawChart() {
-            const data = google.visualization.arrayToDataTable({{ chart_data|safe }});
+    function drawChart() {
+        // Parsear el JSON recibido
+        const comparisonData = JSON.parse('{{ json_comparison|safe }}');
 
-            const options = {
-                title: 'Comparación de Pokémon en la Colección del Entrenador vs Total',
-                hAxis: {title: 'Pokémon'},
-                vAxis: {title: 'Cantidad'},
-                bars: 'vertical',
-                bar: { groupWidth: "75%" },
-                colors: ['#4285F4', '#DB4437'], // Colores para cada barra (Entrenador y Total)
-                legend: { position: 'top' }
-            };
+        // Crear la estructura de datos para el gráfico
+        const data = new google.visualization.DataTable();
+        data.addColumn('string', 'Pokemon');
+        data.addColumn('number', '{{ entrenador.nombre }}');  // Cantidad del entrenador
+        data.addColumn('number', 'Total');                    // Cantidad total
 
-            const chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
-            chart.draw(data, options);
+        // Encontrar los datos del entrenador y los datos totales
+        let entrenadorData = comparisonData.find(item => item.nombre === '{{ entrenador.nombre }}');
+        let totalData = comparisonData.find(item => item.nombre === 'total');
+
+        if (entrenadorData && totalData) {
+            // Mapeamos las cartas del entrenador para acceso rápido
+            const entrenadorMap = {};
+            entrenadorData.cartas.forEach(carta => {
+                entrenadorMap[carta.carta] = carta.cantidad;
+            });
+
+            // Agregar datos al gráfico
+            totalData.cartas.forEach(totalCarta => {
+                const pokemon = totalCarta.carta;
+                const cantidadEntrenador = entrenadorMap[pokemon] || 0;
+                const cantidadTotal = totalCarta.cantidad;
+
+                data.addRow([pokemon, cantidadEntrenador, cantidadTotal]);
+            });
         }
-    </script>
+
+        // Configuración del gráfico
+        const options = {
+            title: 'Cartas Pokemon en la Colección de {{ entrenador.nombre }} en comparación con la cantidad total de cartas existentes',
+            hAxis: {title: 'Pokemon'},
+            vAxis: {title: 'Cantidad'},
+            legend: { position: 'top', alignment: 'center' },
+
+        };
+
+        // Dibujar el gráfico en el div con id 'chart_div'
+        const chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
+        chart.draw(data, options);
+    }
+</script>
 {% endblock %}
