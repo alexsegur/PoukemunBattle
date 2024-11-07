@@ -1,5 +1,5 @@
 from django import forms
-from .models import JugadorEntrenador, Mazo
+from .models import JugadorEntrenador, Mazo, AccionTurnoJugador
 
 
 class GetPlayersForm(forms.Form):
@@ -31,6 +31,15 @@ class GetDecksForm(forms.Form):
         if jugador_2:
             self.fields['mazo_jugador_2'].queryset = Mazo.objects.filter(entrenador=jugador_2)
 
+class PickActionForm(forms.Form):
+    accion = forms.ChoiceField(choices=AccionTurnoJugador.ACCION, label="Elige una acción")
 
-class GetActionForm(forms.Form):
-    pass
+    tipo_ataque = forms.ChoiceField(
+        label="Selecciona tipo de ataque",
+        required=False,
+        choices=[]
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.coleccion_id = kwargs.pop('coleccion_id', None)
+        super().__init__(*args, **kwargs)

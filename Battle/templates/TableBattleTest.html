@@ -79,9 +79,50 @@
                 </div>
                 <br><p>turnojugador_2 : {{ turnojugador_2.turno.turno }}</p>
             </div>
-        <p>turno : {{ turno.turno }}</p>
+            <p>turno : {{ turno.turno }}</p>
+            <form method="post">
+            {% csrf_token %}
+                {{ form.accion.label_tag }} {{ form.accion }}
+
+                <!-- Campo de tipo de ataque oculto inicialmente -->
+                <div id="tipo-ataque-field" style="display: none;">
+                    {{ form.tipo_ataque.label_tag }} {{ form.tipo_ataque }}
+                </div>
+
+                <button type="submit">Enviar</button>
+            </form>
         </div>
     </div>
   </main>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const accionField = document.querySelector('select[name="accion"]');
+        const tipoAtaqueField = document.getElementById('tipo-ataque-field');
+        const tipoAtaqueSelect = document.querySelector('select[name="tipo_ataque"]');
+        const coleccionId = "{{ coleccion_id }}";  // Supón que pasas coleccion_id desde la vista
+
+        accionField.addEventListener('change', function () {
+            if (accionField.value === '1') {  // '1' es el valor para "Ataque"
+                tipoAtaqueField.style.display = 'block';
+
+                // Hacer solicitud AJAX para obtener ataques
+                fetch(`/obtener_ataques?coleccion_id=${coleccionId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        // Limpiar opciones previas
+                        tipoAtaqueSelect.innerHTML = '';
+                        if (data.ataque_1 && data.ataque_2) {
+                            // Agregar opciones de ataque
+                            tipoAtaqueSelect.options.add(new Option(data.ataque_1, '1'));
+                            tipoAtaqueSelect.options.add(new Option(data.ataque_2, '2'));
+                        }
+                    });
+            } else {
+                tipoAtaqueField.style.display = 'none';
+                tipoAtaqueSelect.innerHTML = '';  // Limpiar opciones si se cambia a otra acción
+            }
+        });
+    });
+  </script>
 </body>
 </html>

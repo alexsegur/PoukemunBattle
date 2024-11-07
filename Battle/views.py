@@ -1,10 +1,11 @@
+from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.generic.base import TemplateView
 from Battle.models import CartaReservaJugador, CartaDescartesJugador, CartaMazoJugador, CartaManoJugador, Turno, \
     TurnoJugador, Batalla, CartaActivaJugador, ReservaJugador, DescartesJugador, MazoJugador, ManoJugador, \
     JugadorBatalla
 from django.urls import reverse
-from Battle.forms import GetPlayersForm, GetActionForm, GetDecksForm
+from Battle.forms import GetPlayersForm, PickActionForm, GetDecksForm
 from Core.models import JugadorEntrenador, Mazo
 
 
@@ -64,7 +65,8 @@ class SeleccionarMazoJugadorView(TemplateView):
 class InicioDeBatallaView(TemplateView):
     template_name = 'TableBattleTest.html'
 
-    def post(self, request, *args, **kwargs):
+    def get(self, request, *args, **kwargs):
+        form = PickActionForm()
         # Obtiene los parámetros de la URL
         jugador_1_id = request.GET.get('jugador_1')
         jugador_2_id = request.GET.get('jugador_2')
@@ -83,11 +85,17 @@ class InicioDeBatallaView(TemplateView):
         if batalla is not None:
             # Genera el contexto y renderiza el template con los datos de la batalla
             context = self.get_context_data()
+            context = context.update({
+                'form': form
+            })
             return render(request, self.template_name, context)
         else:
             # Mensaje de error si no se pudo iniciar la batalla
             return render(request, self.template_name, {'error': 'No se pudo iniciar la batalla'})
+    def post(self, request, *args, **kwargs):
 
+
+        pass
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
@@ -149,9 +157,21 @@ class InicioDeBatallaView(TemplateView):
                 'carta_descartes_jugador_2': carta_descartes_jugador_2,
                 'carta_mazo_jugador_2': carta_mazo_jugador_2,
                 'carta_mano_jugador_2': carta_mano_jugador_2,
-                'turnojugador_1': turnojugador_1,  #Solo para pruebas
-                'turnojugador_2': turnojugador_2,  #Solo para pruebas
+                'turnojugador_1': turnojugador_1,
+                'turnojugador_2': turnojugador_2,
                 'turno': turno
             })
 
         return context
+
+    def obtener_ataques(request): #O jugador1 o jugador2
+        cartaactiva_id = request.GET.get('carta_activa_jugador_1') #Cambiarlo
+        if cartaactiva_id:
+            cartaactiva = CartaActivaJugador.objects.filter(id=coleccion_id).first()
+            if cartaactiva:
+                ataques = {
+                    'ataque_1': cartaactiva.carta.carta.ataque1,
+                    'ataque_2': cartaactiva.carta.carta.ataque_2
+                }
+                return JsonResponse(ataques)
+        return JsonResponse({'ataque_1':'error en obtener_ataques()', 'ataque_2':'mismo error'})
